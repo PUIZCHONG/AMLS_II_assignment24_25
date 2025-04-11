@@ -22,7 +22,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 TF_MODEL_PATH = r"C:\Users\SIMON\Desktop\AMLS2_Cassava_CV\models"
 TORCH_MODEL_PATH = r"models/tf_efficientnet_b4.ns_jft_in1k_fold_0_epoch_14_checkpoint.pth"
 TEST_IMAGE_PATH = r"C:\Users\SIMON\Desktop\AMLS2_Cassava_CV\cassava-leaf-disease-classification\test_images\2216849948.jpg"
-OUTPUT_DIR = r"C:\Users\SIMON\Desktop\AMLS2_Cassava_CV\ensemble_results"
+OUTPUT_DIR = r"C:\Users\SIMON\Desktop\AMLS2_Cassava_CV\images"
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -280,13 +280,13 @@ def ensemble_predict(tf_model, torch_model, img_path, weights=None):
             'probability': ensemble_score,
             'probabilities': ensemble_probs.tolist()
         },
-        'tensorflow': {
+        'CropNet': {
             'class_idx': int(tf_class),
             'class_name': CLASS_NAMES[tf_class],
             'probability': float(tf_score),
             'probabilities': tf_probs.tolist()
         },
-        'pytorch': {
+        'EfficientNetB4': {
             'class_idx': int(torch_class),
             'class_name': CLASS_NAMES[torch_class],
             'probability': float(torch_score),
@@ -318,29 +318,30 @@ def visualize_ensemble(results, img_path, output_path):
     
     # Add results text
     ensemble_result = results['ensemble']
-    tf_result = results['tensorflow']
-    torch_result = results['pytorch']
+    tf_result = results['CropNet']
+    torch_result = results['EfficientNetB4']
     
     result_text = f"ENSEMBLE PREDICTION\n"
     result_text += f"Class: {ensemble_result['class_name']}\n"
     result_text += f"Confidence: {ensemble_result['probability']:.4f}\n\n"
     
     result_text += f"MODEL PREDICTIONS\n"
-    result_text += f"TensorFlow: {tf_result['class_name']} ({tf_result['probability']:.4f})\n"
-    result_text += f"PyTorch: {torch_result['class_name']} ({torch_result['probability']:.4f})\n\n"
+    result_text += f"CropNet: {tf_result['class_name']} ({tf_result['probability']:.4f})\n"
+    result_text += f"EfficientNetB4: {torch_result['class_name']} ({torch_result['probability']:.4f})\n\n"
     
     result_text += f"WEIGHTS\n"
-    result_text += f"TensorFlow: {MODEL_WEIGHTS[0]:.2f}, PyTorch: {MODEL_WEIGHTS[1]:.2f}"
+    result_text += f"CropNet: {MODEL_WEIGHTS[0]:.2f}, EfficientNetB4: {MODEL_WEIGHTS[1]:.2f}"
     
     ax_text.text(0.05, 0.95, result_text, transform=ax_text.transAxes, 
                  fontsize=12, va='top', family='monospace')
     
     # Bar charts for each model
-    models = ['TensorFlow', 'PyTorch', 'Ensemble']
+    models = ['CropNet', 'EfficientNetB4', 'ensemble']
     colors = ['#36A2EB', '#FF6384', '#4BC0C0']
     
     for i, (model_name, color) in enumerate(zip(models, colors)):
-        model_key = model_name.lower()
+        # Use the exact key for each model, without converting to lowercase
+        model_key = model_name
         probs = results[model_key]['probabilities']
         
         ax = fig.add_subplot(gs[1, i])
@@ -377,25 +378,26 @@ def print_results(results):
     print(f"  Confidence: {results['ensemble']['probability']:.4f}")
     
     print(f"\nINDIVIDUAL MODEL PREDICTIONS:")
-    print(f"  TensorFlow: {results['tensorflow']['class_name']} "
-          f"(Confidence: {results['tensorflow']['probability']:.4f})")
-    print(f"  PyTorch: {results['pytorch']['class_name']} "
-          f"(Confidence: {results['pytorch']['probability']:.4f})")
+    print(f"  CropNet: {results['CropNet']['class_name']} "
+          f"(Confidence: {results['CropNet']['probability']:.4f})")
+    print(f"  EfficientNetB4: {results['EfficientNetB4']['class_name']} "
+          f"(Confidence: {results['EfficientNetB4']['probability']:.4f})")
     
     print("\nDETAILED PROBABILITY TABLE:")
-    header = "Class".ljust(30) + "TensorFlow".ljust(15) + "PyTorch".ljust(15) + "Ensemble".ljust(15)
+    header = "Class".ljust(30) + "CropNet".ljust(15) + "EfficientNetB4".ljust(15) + "Ensemble".ljust(15)
     print(header)
     print("-" * len(header))
     
     for i, class_name in enumerate(CLASS_NAMES):
-        tf_prob = results['tensorflow']['probabilities'][i]
-        torch_prob = results['pytorch']['probabilities'][i]
+        tf_prob = results['CropNet']['probabilities'][i]
+        torch_prob = results['EfficientNetB4']['probabilities'][i]
         ensemble_prob = results['ensemble']['probabilities'][i]
         
         print(f"{class_name.ljust(30)}{tf_prob:.4f}".ljust(45) + 
               f"{torch_prob:.4f}".ljust(15) + f"{ensemble_prob:.4f}")
     
     print("="*50)
+
 
 # ========== Main Execution ==========
 
